@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlotSync — AI-Based Timetable Generator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Main Style -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/print.css" media="print">
+</head>
+<body class="dark-mode">
+    <!-- App Container -->
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>SlotSync</h1>
+                    <span class="badge-ai">OR-Tools AI</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="tab-timetable" id="nav-timetable">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>Timetable Grid</span>
+                </button>
+                <button class="nav-item" data-tab="tab-manual" id="nav-manual">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Manual Assist</span>
+                    <span class="badge-pill">Patch</span>
+                </button>
+                <button class="nav-item" data-tab="tab-lectures" id="nav-lectures">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                    <span>Lectures</span>
+                    <span class="count-badge" id="badge-lectures-count">0</span>
+                </button>
+                <div class="nav-divider">DATA MANAGEMENT</div>
+                <button class="nav-item" data-tab="tab-departments" id="nav-departments">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Departments</span>
+                    <span class="count-badge" id="badge-departments-count">0</span>
+                </button>
+                <button class="nav-item" data-tab="tab-teachers" id="nav-teachers">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span>Teachers</span>
+                    <span class="count-badge" id="badge-teachers-count">0</span>
+                </button>
+                <button class="nav-item" data-tab="tab-subjects" id="nav-subjects">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>Subjects</span>
+                    <span class="count-badge" id="badge-subjects-count">0</span>
+                </button>
+                <button class="nav-item" data-tab="tab-rooms" id="nav-rooms">
+                    <i class="fa-solid fa-door-open"></i>
+                    <span>Rooms</span>
+                    <span class="count-badge" id="badge-rooms-count">0</span>
+                </button>
+                <button class="nav-item" data-tab="tab-sections" id="nav-sections">
+                    <i class="fa-solid fa-users-rectangle"></i>
+                    <span>Sections & Electives</span>
+                    <span class="count-badge" id="badge-sections-count">0</span>
+                </button>
+                <button class="nav-item" data-tab="tab-settings" id="nav-settings">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Settings</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn-theme-toggle" id="btn-theme-toggle" title="Toggle Light / Dark Mode">
+                    <i class="fa-solid fa-sun" id="theme-toggle-icon"></i>
+                    <span id="theme-label-text">Light Mode</span>
+                </button>
+                <button class="btn-demo-seed" id="btn-seed-data" title="Reload rich college engineering sample dataset">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset Demo Data</span>
+                </button>
+                <div class="solver-status-card" id="solver-mini-status">
+                    <div class="status-indicator ready"></div>
+                    <div class="status-info">
+                        <span class="status-title">Solver Engine</span>
+                        <span class="status-desc" id="status-engine-desc">Ready</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header Bar -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 id="page-title">Timetable Grid Explorer</h2>
+                    <p class="header-subtitle" id="page-subtitle">Interactive clash-free schedule view with filter by Section, Teacher, or Room.</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn-secondary btn-diagnostics" id="btn-open-diagnostics" title="Inspect schedule health & clash diagnostics">
+                        <i class="fa-solid fa-stethoscope text-cyan"></i>
+                        <span>Diagnostics</span>
+                        <span class="count-badge badge-conflict-ok" id="badge-conflict-count">0</span>
+                    </button>
+                    <button class="btn-secondary" id="btn-unlock-all" title="Unlock all pinned slots">
+                        <i class="fa-solid fa-lock-open"></i>
+                        <span>Unlock All</span>
+                    </button>
+                    <button class="btn-secondary" id="btn-top-import-data" title="Bulk Import CSV or Excel Data">
+                        <i class="fa-solid fa-file-import text-purple"></i>
+                        <span>Import Data</span>
+                    </button>
+                    <div class="dropdown-export">
+                        <button class="btn-secondary" id="btn-export-menu">
+                            <i class="fa-solid fa-file-export"></i>
+                            <span>Export</span>
+                            <i class="fa-solid fa-chevron-down ml-1"></i>
+                        </button>
+                        <div class="dropdown-content" id="export-dropdown-content">
+                            <a href="/api/export/excel" id="export-excel-link">
+                                <i class="fa-solid fa-file-excel text-emerald"></i> Excel (.xlsx)
+                            </a>
+                            <a href="/api/export/csv" id="export-csv-link">
+                                <i class="fa-solid fa-file-csv text-blue"></i> CSV (.csv)
+                            </a>
+                            <a href="javascript:void(0)" id="export-print-btn">
+                                <i class="fa-solid fa-print text-amber"></i> Print Grid
+                            </a>
+                        </div>
+                    </div>
+                    <button class="btn-primary btn-generate glow-effect" id="btn-generate-timetable">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>Generate Timetable</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Notification Toast Container -->
+            <div id="toast-container" class="toast-container"></div>
+
+            <!-- Tab 1: Timetable Explorer -->
+            <section class="tab-panel active" id="tab-timetable">
+                <!-- Filter & Controls Toolbar -->
+                <div class="toolbar-card">
+                    <div class="toolbar-group">
+                        <div class="control-item">
+                            <label for="filter-view-type"><i class="fa-solid fa-filter"></i> View By</label>
+                            <select id="filter-view-type" class="custom-select">
+                                <option value="section">Section View</option>
+                                <option value="teacher">Teacher View</option>
+                                <option value="room">Room View</option>
+                                <option value="master">Master View (All Sections)</option>
+                            </select>
+                        </div>
+                        <div class="control-item" id="container-filter-target">
+                            <label for="filter-target-id" id="label-filter-target">Select Section</label>
+                            <select id="filter-target-id" class="custom-select">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Legend & Stats -->
+                    <div class="schedule-legend">
+                        <span class="legend-item"><span class="dot dot-regular"></span> Regular Theory</span>
+                        <span class="legend-item"><span class="dot dot-lab"></span> Lab Session</span>
+                        <span class="legend-item"><span class="dot dot-elective"></span> Parallel Elective</span>
+                        <span class="legend-item"><span class="dot dot-locked"></span> 🔒 Locked Slot</span>
+                    </div>
+                </div>
+
+                <!-- Timetable Grid Container -->
+                <div class="grid-card">
+                    <div id="timetable-render-area">
+                        <!-- Dynamic Grid Table injected here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 2: Manual Assist / Patch Mode -->
+            <section class="tab-panel" id="tab-manual">
+                <div class="manual-assist-grid">
+                    <!-- Left: Control Panel -->
+                    <div class="card card-panel">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <h3><i class="fa-solid fa-wand-magic-sparkles text-indigo"></i> Permutation Slot Picker</h3>
+                                <p>Select a teacher, section, and subject to calculate all clash-free candidate slot layouts.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="form-body">
+                            <div class="form-group">
+                                <label for="manual-teacher-select">Teacher</label>
+                                <select id="manual-teacher-select" class="custom-select">
+                                    <option value="">-- Choose Teacher --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="manual-section-select">Section</label>
+                                <select id="manual-section-select" class="custom-select">
+                                    <option value="">-- Choose Section --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="manual-subject-select">Subject</label>
+                                <select id="manual-subject-select" class="custom-select">
+                                    <option value="">-- Choose Subject --</option>
+                                </select>
+                            </div>
+
+                            <button class="btn-primary w-100" id="btn-calc-permutations">
+                                <i class="fa-solid fa-calculator"></i> Calculate Valid Combinations
+                            </button>
+
+                            <div class="info-callout mt-3">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <div>
+                                    <strong>How it works:</strong> The permutation engine evaluates all available open periods across the week, filters out room/teacher collisions, and presents valid arrangement options for your selection.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Permutation Candidates List & Preview -->
+                    <div class="card card-panel">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <h3><i class="fa-solid fa-list-check text-cyan"></i> Candidate Arrangements</h3>
+                                <span class="badge-pill" id="candidate-count-badge">0 Found</span>
+                            </div>
+                        </div>
+
+                        <div class="candidates-body" id="candidates-container">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                <h4>No Permutations Generated Yet</h4>
+                                <p>Select Teacher, Section, and Subject on the left, then click "Calculate Valid Combinations".</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Lectures Hub -->
+            <section class="tab-panel" id="tab-lectures">
+                <div class="lectures-layout">
+                    <!-- Left: Add Lecture Form -->
+                    <div class="card card-panel">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <h3><i class="fa-solid fa-plus-circle text-indigo"></i> Create Lecture Assignment</h3>
+                                <p>Assign a teacher to deliver a subject for a specific section with detailed configuration.</p>
+                            </div>
+                        </div>
+
+                        <div class="form-body">
+                            <form id="form-lecture">
+                                <div class="form-group">
+                                    <label for="lec-section-select"><i class="fa-solid fa-users-rectangle"></i> Section</label>
+                                    <select id="lec-section-select" class="custom-select" required>
+                                        <option value="">-- Select Section --</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="lec-subject-select"><i class="fa-solid fa-book-open"></i> Subject</label>
+                                    <select id="lec-subject-select" class="custom-select" required>
+                                        <option value="">-- Select Subject --</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="lec-teacher-select"><i class="fa-solid fa-user-tie"></i> Teacher</label>
+                                    <select id="lec-teacher-select" class="custom-select" required>
+                                        <option value="">-- Select Teacher --</option>
+                                    </select>
+                                    <small class="text-muted" id="lec-teacher-hint">Showing teachers qualified for selected subject.</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="lec-description"><i class="fa-solid fa-align-left"></i> Lecture Description / Notes</label>
+                                    <textarea id="lec-description" class="custom-input" rows="3" placeholder="e.g. Covers relational model, SQL, normalization, transactions, and indexing."></textarea>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <label for="lec-credits"><i class="fa-solid fa-star"></i> Credits</label>
+                                        <input type="number" id="lec-credits" class="custom-input" value="4" min="1" max="10">
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label for="lec-room-type"><i class="fa-solid fa-door-open"></i> Preferred Room</label>
+                                        <select id="lec-room-type" class="custom-select">
+                                            <option value="regular">Lecture Hall</option>
+                                            <option value="lab">Laboratory</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="toggle-checkbox">
+                                        <input type="checkbox" id="lec-is-tutorial">
+                                        <span><i class="fa-solid fa-pen-ruler text-amber"></i> This is a Tutorial / Seminar</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn-primary w-100" id="btn-save-lecture">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Lecture Assignment
+                                </button>
+                            </form>
+
+                            <div class="info-callout mt-3">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <div>
+                                    <strong>How it works:</strong> Each lecture links a teacher to a subject for a specific section. The solver uses these assignments to build the timetable.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Lecture Assignments List -->
+                    <div class="card card-panel">
+                        <div class="card-header flex-between">
+                            <div class="card-title-group">
+                                <h3><i class="fa-solid fa-chalkboard-user text-cyan"></i> Lecture Assignments</h3>
+                                <p>All teaching assignments linking teachers, subjects, and sections.</p>
+                            </div>
+                            <span class="badge-pill" id="lectures-total-badge">0 Lectures</span>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="table-filters-toolbar">
+                            <div class="filter-item search-filter">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="filter-lec-search" class="custom-input filter-search-input" placeholder="Search by subject, teacher, or section...">
+                            </div>
+                            <div class="filter-item">
+                                <label for="filter-lec-branch">Department:</label>
+                                <select id="filter-lec-branch" class="custom-select">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="filter-item">
+                                <label for="filter-lec-sem">Semester:</label>
+                                <select id="filter-lec-sem" class="custom-select">
+                                    <option value="">All Semesters</option>
+                                    <option value="1">Semester 1</option>
+                                    <option value="2">Semester 2</option>
+                                    <option value="3">Semester 3</option>
+                                    <option value="4">Semester 4</option>
+                                    <option value="5">Semester 5</option>
+                                    <option value="6">Semester 6</option>
+                                    <option value="7">Semester 7</option>
+                                    <option value="8">Semester 8</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Lecture Cards Grid -->
+                        <div class="lecture-cards-grid" id="lectures-cards-container">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-chalkboard"></i>
+                                <h4>No Lecture Assignments Yet</h4>
+                                <p>Use the form on the left to assign teachers to subjects for specific sections.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: VTU Departments Hub -->
+            <section class="tab-panel" id="tab-departments">
+                <!-- Departments Header & Sync Banner -->
+                <div class="card card-panel mb-4">
+                    <div class="card-header flex-between">
+                        <div class="card-title-group">
+                            <h3><i class="fa-solid fa-graduation-cap text-amber"></i> VTU Engineering Departments & Curriculum Hub</h3>
+                            <p>Select any Visvesvaraya Technological University branch to browse subjects per semester (Sem 1 to 8), add new courses with auto semester detection, and quick-create cohort sections.</p>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button class="btn-secondary btn-sm" id="btn-sync-vtu-catalog" title="Sync and update official VTU curriculum catalog">
+                                <i class="fa-solid fa-cloud-arrow-down text-cyan"></i> Sync VTU Catalog
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Department Selection Grid -->
+                    <div class="dept-grid-container" id="dept-cards-grid">
+                        <!-- Populated dynamically: CSE, ISE, AIML, ECE, EEE, ME, CV, MATHEMATICS, PHYSICS, CHEMISTRY, HUMANITIES -->
+                    </div>
+                </div>
+
+                <!-- Active Department & Semester Workstation -->
+                <div class="card card-panel" id="active-dept-workstation">
+                    <!-- Department Header Banner -->
+                    <div class="active-dept-header">
+                        <div class="dept-header-info">
+                            <div class="dept-avatar" id="active-dept-avatar">
+                                <i class="fa-solid fa-laptop-code" id="active-dept-icon"></i>
+                            </div>
+                            <div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <h3 id="active-dept-title">Computer Science & Engineering</h3>
+                                    <span class="badge-tag badge-cyan" id="active-dept-code">CSE</span>
+                                </div>
+                                <p class="text-muted" id="active-dept-desc" style="font-size:13px; margin-top:2px;">Algorithms, data structures, artificial intelligence, web technologies, and software engineering.</p>
+                            </div>
+                        </div>
+                        <div class="dept-header-actions">
+                            <button class="btn-primary btn-sm glow-effect" id="btn-quick-create-section">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span id="label-quick-create-sec">Quick Create Section (CSE-5A)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Semester Tabs (1 to 8) -->
+                    <div class="semester-tabs-bar" id="dept-semester-tabs">
+                        <!-- Populated dynamically with Sem 1 to 8 pills -->
+                    </div>
+
+                    <!-- Two-Column Workstation: Left (Add Subject Form) | Right (Semester Subject List) -->
+                    <div class="dept-workstation-grid">
+                        <!-- Left: Add Subject to Semester Form -->
+                        <div class="dept-form-column">
+                            <div class="subcard-header flex-between">
+                                <h4><i class="fa-solid fa-plus-circle text-indigo"></i> Add Subject to Semester</h4>
+                                <span class="badge-pill" id="badge-target-sem">Semester 5</span>
+                            </div>
+
+                            <form id="form-dept-add-subject" class="dept-add-form">
+                                <div class="form-group">
+                                    <label for="dept-input-code">Course / Subject Code</label>
+                                    <div class="input-with-hint">
+                                        <input type="text" id="dept-input-code" class="custom-input" placeholder="e.g. 21CS51 or 21CSL55" required autocomplete="off">
+                                        <div class="auto-sem-indicator" id="dept-auto-sem-indicator" style="display:none;">
+                                            <i class="fa-solid fa-wand-magic-sparkles text-cyan"></i>
+                                            <span>Auto-Detected: <strong id="dept-detected-sem-text">Semester 5</strong></span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Enter code (e.g. 21CS51, 21MAT31) for automatic semester parsing.</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="dept-input-name">Subject Full Name</label>
+                                    <input type="text" id="dept-input-name" class="custom-input" placeholder="e.g. Automata Theory and Computability" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <label for="dept-input-branch">Department</label>
+                                        <select id="dept-input-branch" class="custom-select">
+                                            <!-- Dynamically populated -->
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label for="dept-input-sem">Semester (1-8)</label>
+                                        <input type="number" id="dept-input-sem" class="custom-input" min="1" max="8" placeholder="Auto (from code)">
+                                        <small class="text-muted">Optional (Auto if blank)</small>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <label for="dept-input-hours">Weekly Hours</label>
+                                        <input type="number" id="dept-input-hours" class="custom-input" min="1" max="10" value="4" required>
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label for="dept-input-consecutive">Block Hours</label>
+                                        <input type="number" id="dept-input-consecutive" class="custom-input" min="1" max="3" value="1">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="toggle-checkbox">
+                                        <input type="checkbox" id="dept-input-lab">
+                                        <span><i class="fa-solid fa-flask text-cyan"></i> Requires Laboratory Room (Lab)</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn-primary w-100" id="btn-submit-dept-subject">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Subject to Curriculum
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Right: Semester Subjects & Labs List -->
+                        <div class="dept-list-column">
+                            <div class="subcard-header flex-between">
+                                <div>
+                                    <h4 id="dept-subjects-list-title"><i class="fa-solid fa-book-bookmark text-cyan"></i> Semester 5 Curriculum</h4>
+                                    <p class="text-muted" id="dept-subjects-list-subtitle" style="font-size:12px;">Theory courses, practical labs, and elective courses.</p>
+                                </div>
+                                <span class="badge-pill" id="dept-sem-count-badge">0 Subjects</span>
+                            </div>
+
+                            <div class="dept-subjects-container" id="dept-sem-subjects-container">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 3: Teachers Hub -->
+            <section class="tab-panel" id="tab-teachers">
+                <div class="card data-table-card">
+                    <div class="card-header flex-between">
+                        <div class="card-title-group">
+                            <h3><i class="fa-solid fa-user-tie text-indigo"></i> Faculty & Teaching Assignments</h3>
+                            <p>Manage faculty members, departments, core subjects, and cross-branch qualifications.</p>
+                        </div>
+                        <div class="header-actions-group">
+                            <div class="view-toggle-pills">
+                                <button class="btn-toggle active" id="btn-view-teachers-list">
+                                    <i class="fa-solid fa-table-list"></i> Directory
+                                </button>
+                                <button class="btn-toggle" id="btn-view-teachers-heatmap">
+                                    <i class="fa-solid fa-chart-simple"></i> Workload Heatmap
+                                </button>
+                            </div>
+                            <button class="btn-secondary btn-sm" data-import-entity="teachers" title="Import teachers from Excel/CSV">
+                                <i class="fa-solid fa-file-import text-cyan"></i> Import CSV/Excel
+                            </button>
+                            <button class="btn-primary btn-sm" id="btn-add-teacher">
+                                <i class="fa-solid fa-plus"></i> Add Teacher
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 1. Faculty List View -->
+                    <div id="teachers-list-container">
+                        <div class="table-responsive">
+                            <table class="data-table" id="teachers-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Faculty Name</th>
+                                        <th>Home Branch</th>
+                                        <th>Assigned Subjects</th>
+                                        <th>Cross-Branch Subjects</th>
+                                        <th>Max Daily Hrs</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teachers-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. Workload Heatmap View -->
+                    <div id="teachers-heatmap-container" style="display: none;">
+                        <!-- Heatmap Stats Bar -->
+                        <div class="heatmap-stats-bar">
+                            <div class="heat-stat-card">
+                                <div class="heat-stat-icon icon-cyan"><i class="fa-solid fa-user-tie"></i></div>
+                                <div>
+                                    <span class="heat-stat-label">Total Faculty</span>
+                                    <h4 class="heat-stat-value" id="heat-stat-faculty">0</h4>
+                                </div>
+                            </div>
+                            <div class="heat-stat-card">
+                                <div class="heat-stat-icon icon-indigo"><i class="fa-solid fa-clock"></i></div>
+                                <div>
+                                    <span class="heat-stat-label">Avg Workload</span>
+                                    <h4 class="heat-stat-value" id="heat-stat-avg">0 hrs/wk</h4>
+                                </div>
+                            </div>
+                            <div class="heat-stat-card">
+                                <div class="heat-stat-icon icon-emerald"><i class="fa-solid fa-circle-check"></i></div>
+                                <div>
+                                    <span class="heat-stat-label">Optimal Load</span>
+                                    <h4 class="heat-stat-value" id="heat-stat-optimal">0</h4>
+                                </div>
+                            </div>
+                            <div class="heat-stat-card">
+                                <div class="heat-stat-icon icon-rose"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                                <div>
+                                    <span class="heat-stat-label">Overloaded</span>
+                                    <h4 class="heat-stat-value" id="heat-stat-overloaded">0</h4>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Heatmap Filters & Legend -->
+                        <div class="table-filters-toolbar heatmap-toolbar">
+                            <div class="filter-item search-filter">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="filter-heat-search" class="custom-input filter-search-input" placeholder="Filter teacher by name or ID...">
+                            </div>
+                            <div class="filter-item">
+                                <label for="filter-heat-branch">Department:</label>
+                                <select id="filter-heat-branch" class="custom-select">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="heatmap-legend">
+                                <span class="legend-title">Intensity:</span>
+                                <span class="chip-legend heat-0">0h</span>
+                                <span class="chip-legend heat-1">1-2h</span>
+                                <span class="chip-legend heat-2">3-4h</span>
+                                <span class="chip-legend heat-3">5h</span>
+                                <span class="chip-legend heat-4">6h+</span>
+                            </div>
+                        </div>
+
+                        <!-- Heatmap Grid Target -->
+                        <div id="heatmap-table-container">
+                            <!-- Populated dynamically by WorkloadHeatmap -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 4: Subjects Hub -->
+            <section class="tab-panel" id="tab-subjects">
+                <div class="card data-table-card">
+                    <div class="card-header flex-between">
+                        <div class="card-title-group">
+                            <h3><i class="fa-solid fa-book-open text-cyan"></i> Courses & VTU Curriculum</h3>
+                            <p>Define subjects, weekly credit hours, semester mappings, and laboratory room requirements.</p>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-secondary btn-sm" data-import-entity="subjects" title="Import courses from Excel/CSV">
+                                <i class="fa-solid fa-file-import text-cyan"></i> Import CSV/Excel
+                            </button>
+                            <button class="btn-secondary btn-sm" id="btn-import-vtu" title="Import official VTU Syllabus across all engineering branches">
+                                <i class="fa-solid fa-graduation-cap text-amber"></i> Import VTU Syllabus
+                            </button>
+                            <button class="btn-primary btn-sm" id="btn-add-subject">
+                                <i class="fa-solid fa-plus"></i> Add Subject
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters Toolbar -->
+                    <div class="table-filters-toolbar">
+                        <div class="filter-item search-filter">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="filter-subj-search" class="custom-input filter-search-input" placeholder="Search subject code or name...">
+                        </div>
+                        <div class="filter-item">
+                            <label for="filter-subj-branch">Department:</label>
+                            <select id="filter-subj-branch" class="custom-select">
+                                <option value="">All Departments</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="filter-subj-sem">Semester:</label>
+                            <select id="filter-subj-sem" class="custom-select">
+                                <option value="">All Semesters</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
+                                <option value="7">Semester 7</option>
+                                <option value="8">Semester 8</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="filter-subj-type">Type:</label>
+                            <select id="filter-subj-type" class="custom-select">
+                                <option value="">All Types</option>
+                                <option value="theory">Theory Lecture</option>
+                                <option value="lab">Laboratory</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="subjects-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Subject Name</th>
+                                    <th>Department</th>
+                                    <th>Semester</th>
+                                    <th>Weekly Hours</th>
+                                    <th>Type</th>
+                                    <th>Block Hours</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subjects-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 5: Rooms Hub -->
+            <section class="tab-panel" id="tab-rooms">
+                <div class="card data-table-card">
+                    <div class="card-header flex-between">
+                        <div class="card-title-group">
+                            <h3><i class="fa-solid fa-door-open text-emerald"></i> Classrooms & Laboratories</h3>
+                            <p>Manage available lecture halls, computer labs, and engineering workshops.</p>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-secondary btn-sm" data-import-entity="rooms" title="Import rooms from Excel/CSV">
+                                <i class="fa-solid fa-file-import text-cyan"></i> Import CSV/Excel
+                            </button>
+                            <button class="btn-primary btn-sm" id="btn-add-room">
+                                <i class="fa-solid fa-plus"></i> Add Room
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="rooms-table">
+                            <thead>
+                                <tr>
+                                    <th>Room ID</th>
+                                    <th>Room Type</th>
+                                    <th>Capacity</th>
+                                    <th>Dedicated Branch</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rooms-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 6: Sections & Electives Hub -->
+            <section class="tab-panel" id="tab-sections">
+                <div class="card data-table-card">
+                    <div class="card-header flex-between">
+                        <div class="card-title-group">
+                            <h3><i class="fa-solid fa-users-rectangle text-purple"></i> Sections & Elective Groups</h3>
+                            <p>Configure student cohorts and synchronize parallel elective group offerings.</p>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-secondary btn-sm" data-import-entity="sections" title="Import sections from Excel/CSV">
+                                <i class="fa-solid fa-file-import text-cyan"></i> Import CSV/Excel
+                            </button>
+                            <button class="btn-primary btn-sm" id="btn-add-section">
+                                <i class="fa-solid fa-plus"></i> Add Section
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="sections-table">
+                            <thead>
+                                <tr>
+                                    <th>Section ID</th>
+                                    <th>Branch</th>
+                                    <th>Semester</th>
+                                    <th>Core Subjects</th>
+                                    <th>Elective Groups (Parallel)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sections-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 7: Settings Hub -->
+            <section class="tab-panel" id="tab-settings">
+                <div class="settings-grid">
+                    <!-- Left: Timing Parameters -->
+                    <div class="card card-panel">
+                        <div class="card-header">
+                            <div class="card-title-group">
+                                <h3><i class="fa-solid fa-clock text-amber"></i> Daily Schedule & Timing Rules</h3>
+                                <p>Set college hours, period durations, and flexible break intervals.</p>
+                            </div>
+                        </div>
+
+                        <div class="form-body">
+                            <div class="form-group">
+                                <label><i class="fa-regular fa-calendar-days"></i> Working Days</label>
+                                <div class="checkbox-group" id="settings-days-checkboxes">
+                                    <label><input type="checkbox" value="Mon" checked> Mon</label>
+                                    <label><input type="checkbox" value="Tue" checked> Tue</label>
+                                    <label><input type="checkbox" value="Wed" checked> Wed</label>
+                                    <label><input type="checkbox" value="Thu" checked> Thu</label>
+                                    <label><input type="checkbox" value="Fri" checked> Fri</label>
+                                    <label><input type="checkbox" value="Sat"> Sat</label>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="settings-start-time"><i class="fa-regular fa-clock"></i> College Start Time</label>
+                                    <input type="time" id="settings-start-time" class="custom-input" value="09:00">
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="settings-period-duration"><i class="fa-solid fa-hourglass-half"></i> Period Duration (Mins)</label>
+                                    <input type="number" id="settings-period-duration" class="custom-input" min="30" max="120" value="55">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-12">
+                                    <label for="settings-periods-count"><i class="fa-solid fa-list-ol"></i> Total Teaching Periods</label>
+                                    <input type="number" id="settings-periods-count" class="custom-input" min="3" max="12" value="7">
+                                </div>
+                            </div>
+
+                            <hr style="border:0; border-top:1px solid var(--border-color); margin:18px 0;">
+
+                            <h4 style="font-family:var(--font-heading); font-size:14px; margin-bottom:12px; color:var(--text-main);">
+                                <i class="fa-solid fa-mug-hot text-amber"></i> Breaks Configuration
+                            </h4>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="settings-short-break-after">Short Break (After Period #)</label>
+                                    <input type="number" id="settings-short-break-after" class="custom-input" min="0" max="10" value="2">
+                                    <small class="text-muted">Set 0 to disable</small>
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="settings-short-break-duration">Duration (Mins)</label>
+                                    <input type="number" id="settings-short-break-duration" class="custom-input" min="5" max="60" value="15">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="settings-lunch-break-after">Lunch Break (After Period #)</label>
+                                    <input type="number" id="settings-lunch-break-after" class="custom-input" min="0" max="10" value="4">
+                                    <small class="text-muted">Set 0 to disable</small>
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="settings-lunch-break-duration">Duration (Mins)</label>
+                                    <input type="number" id="settings-lunch-break-duration" class="custom-input" min="15" max="90" value="50">
+                                </div>
+                            </div>
+
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <button type="button" class="btn-secondary w-100" id="btn-recalculate-slots">
+                                    <i class="fa-solid fa-rotate"></i> Auto-Generate Timings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Slot Timings Table & Fine-tuning -->
+                    <div class="card card-panel">
+                        <div class="card-header flex-between">
+                            <div class="card-title-group">
+                                <h3><i class="fa-solid fa-timeline text-cyan"></i> Configured Period Timings & Breaks</h3>
+                                <p>Review or fine-tune exact start & end times for each period in the grid.</p>
+                            </div>
+                            <button class="btn-primary" id="btn-save-settings">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Configuration
+                            </button>
+                        </div>
+
+                        <div class="table-responsive" style="padding:16px 20px;">
+                            <table class="data-table" id="time-slots-table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Label</th>
+                                        <th>Start Time</th>
+                                        <th>End Time</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="time-slots-tbody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals Container -->
+    <!-- Modal: Teacher -->
+    <div class="modal-overlay" id="modal-teacher">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-teacher-title">Add Faculty Member</h3>
+                <button class="modal-close" data-close="modal-teacher">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-teacher">
+                    <input type="hidden" id="input-t-mode" value="add">
+                    <div class="form-row">
+                        <div class="form-group col-4">
+                            <label for="input-t-id">Teacher ID</label>
+                            <input type="text" id="input-t-id" class="custom-input" placeholder="e.g. T1" required>
+                        </div>
+                        <div class="form-group col-8">
+                            <label for="input-t-name">Full Name</label>
+                            <input type="text" id="input-t-name" class="custom-input" placeholder="e.g. Dr. Suresh" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="input-t-branch">Department / Branch</label>
+                            <input type="text" id="input-t-branch" class="custom-input" placeholder="e.g. CSE" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="input-t-max-hours">Max Hours / Day</label>
+                            <input type="number" id="input-t-max-hours" class="custom-input" value="4" min="1" max="8">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="input-t-subjects">Assigned Own-Branch Subjects (comma-separated IDs)</label>
+                        <input type="text" id="input-t-subjects" class="custom-input" placeholder="e.g. CS301, CS302">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-t-cross">Cross-Branch Subjects (Format: CODE:BRANCH, e.g. IS402:ISE)</label>
+                        <input type="text" id="input-t-cross" class="custom-input" placeholder="e.g. IS402:ISE, EC301:ECE">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" data-close="modal-teacher">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Teacher</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Subject -->
+    <div class="modal-overlay" id="modal-subject">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-subject-title">Add Course / Subject</h3>
+                <button class="modal-close" data-close="modal-subject">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-subject">
+                    <input type="hidden" id="input-s-mode" value="add">
+                    <div class="form-row">
+                        <div class="form-group col-4">
+                            <label for="input-s-id">Subject Code</label>
+                            <input type="text" id="input-s-id" class="custom-input" placeholder="e.g. CS301" required>
+                        </div>
+                        <div class="form-group col-8">
+                            <label for="input-s-name">Subject Name</label>
+                            <input type="text" id="input-s-name" class="custom-input" placeholder="e.g. Database Management" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-4">
+                            <label for="input-s-branch">Branch / Department</label>
+                            <input type="text" id="input-s-branch" class="custom-input" placeholder="e.g. CSE" required>
+                        </div>
+                        <div class="form-group col-4">
+                            <label for="input-s-sem">Semester (1-8)</label>
+                            <input type="number" id="input-s-sem" class="custom-input" min="1" max="8" placeholder="Auto (from code)">
+                        </div>
+                        <div class="form-group col-4">
+                            <label for="input-s-hours">Weekly Hours</label>
+                            <input type="number" id="input-s-hours" class="custom-input" value="4" min="1" max="10" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="input-s-consecutive">Block Hours</label>
+                            <input type="number" id="input-s-consecutive" class="custom-input" value="1" min="1" max="3">
+                        </div>
+                        <div class="form-group col-6" style="display:flex; align-items:center; margin-top:24px;">
+                            <label class="toggle-checkbox">
+                                <input type="checkbox" id="input-s-lab">
+                                <span>Requires Lab Room</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="auto-sem-indicator" id="modal-auto-sem-indicator" style="display:none; margin-bottom:12px;">
+                        <i class="fa-solid fa-wand-magic-sparkles text-cyan"></i>
+                        <span>Auto-Detected: <strong id="modal-detected-sem-text">Semester 5</strong></span>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" data-close="modal-subject">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Subject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Room -->
+    <div class="modal-overlay" id="modal-room">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-room-title">Add Room</h3>
+                <button class="modal-close" data-close="modal-room">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-room">
+                    <input type="hidden" id="input-r-mode" value="add">
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="input-r-id">Room Identifier</label>
+                            <input type="text" id="input-r-id" class="custom-input" placeholder="e.g. LH-101 or LAB-1" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="input-r-type">Room Type</label>
+                            <select id="input-r-type" class="custom-select">
+                                <option value="regular">Lecture Hall (Regular)</option>
+                                <option value="lab">Computer / Hardware Lab</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="input-r-capacity">Capacity</label>
+                            <input type="number" id="input-r-capacity" class="custom-input" value="65" min="10" max="300">
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="input-r-branch">Dedicated Branch</label>
+                            <input type="text" id="input-r-branch" class="custom-input" value="GENERAL">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" data-close="modal-room">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Room</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Section -->
+    <div class="modal-overlay" id="modal-section">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-section-title">Add Section & Electives</h3>
+                <button class="modal-close" data-close="modal-section">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-section">
+                    <input type="hidden" id="input-sec-mode" value="add">
+                    <div class="form-row">
+                        <div class="form-group col-4">
+                            <label for="input-sec-id">Section ID</label>
+                            <input type="text" id="input-sec-id" class="custom-input" placeholder="e.g. CSE-5A" required>
+                        </div>
+                        <div class="form-group col-4">
+                            <label for="input-sec-branch">Branch</label>
+                            <input type="text" id="input-sec-branch" class="custom-input" placeholder="e.g. CSE" required>
+                        </div>
+                        <div class="form-group col-4">
+                            <label for="input-sec-semester">Semester</label>
+                            <input type="number" id="input-sec-semester" class="custom-input" value="5" min="1" max="8">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="input-sec-subjects">Core Subjects (comma-separated IDs)</label>
+                        <input type="text" id="input-sec-subjects" class="custom-input" placeholder="e.g. CS301, CS302, CS303, CS301L">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-sec-electives">Elective Groups JSON</label>
+                        <textarea id="input-sec-electives" class="custom-input" rows="3" placeholder='[{"group": "Elective-1", "options": ["CS305", "CS306", "CS307"]}]'></textarea>
+                        <small class="text-muted">Options in the same group will be scheduled simultaneously in parallel rooms.</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" data-close="modal-section">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Section</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Data Import (CSV / Excel) -->
+    <div class="modal-overlay" id="modal-import">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div class="modal-header-title">
+                    <i class="fa-solid fa-file-import text-cyan"></i>
+                    <div>
+                        <h3 id="modal-import-title">Bulk Import Data</h3>
+                        <p class="modal-subtitle">Upload spreadsheet (.xlsx / .csv) to quickly populate or batch-update records.</p>
+                    </div>
+                </div>
+                <button class="modal-close" data-close="modal-import">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="import-entity-selector-wrap">
+                    <label class="form-label font-semibold"><i class="fa-solid fa-shapes"></i> Select Target Dataset:</label>
+                    <div class="entity-pill-selector" id="import-entity-selector">
+                        <button type="button" class="entity-pill active" data-entity="teachers">
+                            <i class="fa-solid fa-user-tie"></i> Faculty Members
+                        </button>
+                        <button type="button" class="entity-pill" data-entity="subjects">
+                            <i class="fa-solid fa-book-open"></i> Courses / Subjects
+                        </button>
+                        <button type="button" class="entity-pill" data-entity="rooms">
+                            <i class="fa-solid fa-door-open"></i> Classrooms & Labs
+                        </button>
+                        <button type="button" class="entity-pill" data-entity="sections">
+                            <i class="fa-solid fa-users-rectangle"></i> Student Sections
+                        </button>
+                        <button type="button" class="entity-pill pill-gold" data-entity="workbook">
+                            <i class="fa-solid fa-file-excel"></i> Full College Workbook (.xlsx)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Template Download Card -->
+                <div class="import-template-card">
+                    <div class="template-card-info">
+                        <i class="fa-solid fa-circle-info text-cyan"></i>
+                        <div>
+                            <strong>Need standard formatting?</strong>
+                            <p class="text-xs text-muted" id="import-template-desc">Download an example pre-formatted file with sample rows and column definitions.</p>
+                        </div>
+                    </div>
+                    <div class="template-download-actions">
+                        <a href="/api/import/template/teachers?format=csv" id="btn-download-template-csv" class="btn-template" download>
+                            <i class="fa-solid fa-file-csv"></i> Download CSV Template
+                        </a>
+                        <a href="/api/import/template/teachers?format=excel" id="btn-download-template-excel" class="btn-template" download>
+                            <i class="fa-solid fa-file-excel"></i> Download Excel Template
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Drag & Drop Upload Zone -->
+                <div class="upload-dropzone" id="import-dropzone">
+                    <input type="file" id="import-file-input" accept=".csv, .xlsx, .xls" style="display:none;">
+                    <div class="dropzone-icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <h4 id="dropzone-title">Drag & drop your .csv or .xlsx file here</h4>
+                    <p class="dropzone-subtitle">or <button type="button" class="btn-browse-link" id="btn-browse-file">browse files</button> from your computer</p>
+                    <span class="dropzone-hint">Supports CSV and Microsoft Excel (.xlsx, .xls)</span>
+
+                    <!-- File selected preview pill -->
+                    <div class="file-preview-pill" id="file-preview-pill" style="display:none;">
+                        <i class="fa-solid fa-file-lines text-emerald"></i>
+                        <span class="file-name" id="file-preview-name">filename.csv</span>
+                        <span class="file-size" id="file-preview-size">0 KB</span>
+                        <button type="button" class="btn-remove-file" id="btn-remove-file" title="Remove file">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Results / Feedback Alert -->
+                <div class="import-results-card" id="import-results-card" style="display:none;">
+                    <div class="import-results-summary" id="import-results-summary">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div class="import-errors-container" id="import-errors-container" style="display:none;">
+                        <h5><i class="fa-solid fa-triangle-exclamation text-rose"></i> Skipped Rows / Warnings:</h5>
+                        <ul id="import-errors-list"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex-between">
+                <button type="button" class="btn-secondary" data-close="modal-import">Close</button>
+                <button type="button" class="btn-primary" id="btn-submit-import" disabled>
+                    <i class="fa-solid fa-upload"></i>
+                    <span id="btn-import-text">Import Records</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Conflict Diagnostics Panel -->
+    <div class="modal-overlay" id="modal-diagnostics">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div class="modal-header-title">
+                    <i class="fa-solid fa-stethoscope text-cyan"></i>
+                    <div>
+                        <h3>Timetable Health & Conflict Diagnostics</h3>
+                        <p class="modal-subtitle">Real-time solver verification, clash detection, and constraint analytics.</p>
+                    </div>
+                </div>
+                <button class="modal-close" data-close="modal-diagnostics">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Health Overview Banner -->
+                <div class="diag-overview-banner">
+                    <div class="diag-score-ring">
+                        <span class="diag-score-number" id="diag-health-score">100%</span>
+                        <span class="diag-score-label">Health Score</span>
+                    </div>
+                    <div class="diag-status-info">
+                        <h4 id="diag-health-status">Checking schedule health...</h4>
+                        <p>Continuous constraint audit evaluating teacher double-bookings, room overlaps, capacity compliance, and weekly workload bounds.</p>
+                        <div class="diag-summary-chips">
+                            <span class="diag-chip chip-critical"><i class="fa-solid fa-circle-xmark"></i> <strong id="diag-count-critical">0</strong> Critical Clashes</span>
+                            <span class="diag-chip chip-warning"><i class="fa-solid fa-triangle-exclamation"></i> <strong id="diag-count-warning">0</strong> Warnings</span>
+                            <span class="diag-chip chip-info"><i class="fa-solid fa-circle-info"></i> <strong id="diag-count-info">0</strong> Notices</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diagnostics Filter Tabs -->
+                <div class="diag-tabs-bar">
+                    <button class="diag-filter-btn active" data-filter="all">All Issues</button>
+                    <button class="diag-filter-btn" data-filter="critical"><i class="fa-solid fa-circle-xmark text-rose"></i> Critical Clashes</button>
+                    <button class="diag-filter-btn" data-filter="warning"><i class="fa-solid fa-triangle-exclamation text-amber"></i> Warnings</button>
+                    <button class="diag-filter-btn" data-filter="info"><i class="fa-solid fa-circle-info text-cyan"></i> Notices</button>
+                </div>
+
+                <!-- Issues Container -->
+                <div class="diag-issues-scroll" id="diagnostics-issues-list">
+                    <!-- Populated dynamically by DiagnosticsManager -->
+                </div>
+            </div>
+            <div class="modal-footer flex-between">
+                <span class="text-dim text-xs"><i class="fa-solid fa-shield-halved"></i> OR-Tools Constraint Validation Engine</span>
+                <button type="button" class="btn-secondary" data-close="modal-diagnostics">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/diagnostics.js"></script>
+    <script src="/static/js/heatmap.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/timetable.js"></script>
+    <script src="/static/js/data_manager.js"></script>
+    <script src="/static/js/manual_assist.js"></script>
+    <script src="/static/js/lectures.js"></script>
+</body>
+</html>

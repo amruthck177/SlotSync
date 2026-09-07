@@ -1,0 +1,68 @@
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+        font-family: Arial, sans-serif !important;
+        font-size: 11pt !important;
+    }
+
+    .sidebar, .top-header, .toolbar-card, .btn-pin-slot, .dropdown-export, .toast-container, .modal-overlay {
+        display: none !important;
+    }
+
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .grid-card {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        background: transparent !important;
+    }
+
+    .timetable-grid {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+    }
+
+    .timetable-grid th, .timetable-grid td {
+        border: 1px solid #333 !important;
+        color: black !important;
+        background: white !important;
+        padding: 6px !important;
+    }
+
+    .timetable-grid th {
+        background: #f0f0f0 !important;
+        font-weight: bold !important;
+    }
+
+    .slot-cell {
+        background: white !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: black !important;
+        padding: 4px !important;
+    }
+
+    .slot-code {
+        font-weight: bold !important;
+        font-size: 10pt !important;
+        color: black !important;
+    }
+
+    .slot-title {
+        font-size: 9pt !important;
+        color: #444 !important;
+    }
+
+    .slot-teacher, .slot-room {
+        font-size: 8pt !important;
+        color: #222 !important;
+        background: transparent !important;
+    }
+}
